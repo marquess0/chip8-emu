@@ -28,9 +28,7 @@ uint16_t i;
 uint16_t pc = 0x200;
 uint8_t screen[8][32];
 int pitch = 0;
-//uint8_t screen[64 * 32 * 3] = {0};
 uint8_t delay, sound;
-uint16_t stack[16];
 uint16_t sp;
 uint8_t key[16] = {0};
 // 0 is nothing, 1 is press, 2 is held, 3 is release
