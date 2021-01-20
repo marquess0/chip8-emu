@@ -26,10 +26,11 @@ uint8_t hexa[5 * 16] = {
 uint8_t reg[16];
 uint16_t i;
 uint16_t pc = 0x200;
-uint8_t screen[8][32];
+uint8_t screen[32][8];
 int pitch = 0;
 uint8_t delay, sound;
-uint16_t sp;
+uint8_t sp;
+uint16_t stack[16];
 uint8_t key[16] = {0};
 // 0 is nothing, 1 is press, 2 is held, 3 is release
 clock_t t;
@@ -48,6 +49,7 @@ int main(int argc, char *argv[]) {
 	t = clock();
 	SDL_SetRenderTarget(ren, NULL);
 	srand((unsigned) time(&t));
+	int redraw = 0;
 	for (;;) {
 		printf("Instruction at %x : %x: ", pc, (mem[pc] << 8) | mem[pc+1]);
 		opcode = mem[pc] << 8 | mem[pc+1];
@@ -232,7 +234,7 @@ int main(int argc, char *argv[]) {
 					int x = reg[(opcode >> 8) & 0xf];
 					int y = reg[(opcode >> 4) & 0xf];
 					int n = (opcode & 0xf);
-					int set = 0;
+					//int set = 0;
 					reg[15] = 0;
 					for (int ind = 0; ind < n; ind++) {
 						if (x % 8 == 0) {
@@ -243,27 +245,18 @@ int main(int argc, char *argv[]) {
 							uint8_t old_val = screen[(y+ind)][x/8];
 							screen[(y + ind)][(x/8)] ^= mem[i + ind];
 							if (old_val != screen[y+ind][x/8]) {
-								set=1;
+								redraw = 1;
 								reg[15] = 1;
 							}
 						} else {
 							int offset = x % 8;
-							int x_round = (x >> 3);
-							uint8_t old_val1 = screen[y+ind][x/8];
-							uint8_t old_val2 = screen[y+ind][x/8+1];
-							/*if ((screen[(y + ind)][(x_round - 1)] << offset) & ((mem[i+ind] >> offset)) & 0xff != 0) {
-								set = 1;
-								reg[15] = 1;
-							}
-							if (mem[i+ind] != 0) {
-								//(((screen[(y + ind)][(x_round)] >> (8 - offset))) & (mem[i+ind] << (8 - offset - 1)) & 0xff != 0) {
-								set = 1;
-								reg[15] = 1;
-							}*/
-							screen[(y + ind)][(x_round)] ^= mem[i+ind] >> (offset );
+							int x_round = (x / 8);
+							uint8_t old_val1 = screen[y+ind][x_round];
+							uint8_t old_val2 = screen[y+ind][x_round+1];
+							screen[(y + ind)][(x_round)] ^= mem[i+ind] >> (offset);
 							screen[(y + ind)][(x_round+1)] ^= mem[i+ind] << (8 - offset);
 							if (old_val1 != screen[y+ind][x_round] || old_val2 != screen[y+ind][x_round+1]) {
-								set=1;
+								redraw = 1;
 								reg[15] = 1;
 							}
 						}
@@ -477,11 +470,11 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
-		if (reg[15] && (opcode >> 12) == 0xd) {
+		if (redraw) {
 			for (int y = 0; y < 32; y++) {
 				for (int x = 0; x < 8; x++) {
 					for (int b = 0; b < 8; b++) {
-						if ((screen[y][x] >> (8 - b -1)) & 0x1) {
+						if (screen[y][x] & (1 << (8 - b - 1))) {
 							SDL_SetRenderDrawColor(ren, 255, 255, 255, SDL_ALPHA_OPAQUE);
 						} else {
 							SDL_SetRenderDrawColor(ren, 0, 0, 0, SDL_ALPHA_OPAQUE);
