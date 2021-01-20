@@ -23,7 +23,7 @@ uint8_t hexa[5 * 16] = {
   0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
   0xF0, 0x80, 0xF0, 0x80, 0x80,  // F
 };
-//#define DEBUG 1
+#define DEBUG 1
 uint8_t reg[16];
 uint16_t i;
 uint16_t pc = 0x200;
@@ -449,17 +449,17 @@ int main(int argc, char *argv[]) {
 					for (int ind = 0; ind <= ((opcode >> 8) & 0xf); ind++) {
 						mem[i+ind] = reg[ind];
 					}
-					i += ((opcode >> 8) & 0xf) + 1;
+					//i += ((opcode >> 8) & 0xf) + 1;
 				} else if (opcode >> 12 == 0xf && (opcode & 0xff) == 0x65) {
 					#ifdef DEBUG
 					printf("loads register 0 through register %x at location I onwards, I = I + r + 1\n", ((opcode >> 8) & 0xf));
 #endif
 					//load registers v0-vr from location I onwards
 					// as above
-					for (int ind = 0; ind <= ((opcode >> 8) & 0xf); ind++) {
-						reg[ind] = mem[i+ind]; // (could be i - ind - 1)
+					for (int ind = 0; ind <= ((opcode >> 8) & 0xf);ind++) {
+						reg[ind] = mem[i+ind];
 					}
-					i += ((opcode >> 8) & 0xf) + 1; //could be -=
+					//i += ((opcode >> 8) & 0xf) + 1; //could be -=
 				} else {
 					#ifdef DEBUG
 					printf("Unfortunately, the instruction this Chip attempted to process is not a valid Chip8 instruction\n");
