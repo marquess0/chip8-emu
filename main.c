@@ -37,7 +37,7 @@ clock_t t;
 int main(int argc, char *argv[]) {
 	if (argc > 1) {
 		FILE* f = fopen(argv[1], "rb");
-		fread(mem + 0x200,4096-0x200,1,f);
+		fread(mem + 0x200,1,4096 - 0x200,f);
 		fclose(f);
 		for (int ind = 0; ind < 5 * 16; ind++) {
 			mem[ind] = hexa[ind];
