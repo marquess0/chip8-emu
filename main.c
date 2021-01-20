@@ -23,7 +23,7 @@ uint8_t hexa[5 * 16] = {
   0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
   0xF0, 0x80, 0xF0, 0x80, 0x80,  // F
 };
-#define DEBUG 1
+//#define DEBUG 1
 uint8_t reg[16];
 uint16_t i;
 uint16_t pc = 0x200;
@@ -35,6 +35,7 @@ uint16_t stack[16];
 uint8_t key[16] = {0};
 // 0 is nothing, 1 is press, 2 is held, 3 is release
 clock_t t;
+clock_t last;
 int main(int argc, char *argv[]) {
 	if (argc > 1) {
 		FILE* f = fopen(argv[1], "rb");
@@ -48,10 +49,11 @@ int main(int argc, char *argv[]) {
 	SDL_Window * win = SDL_CreateWindow("Chip8_Emu", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 512, SDL_WINDOW_OPENGL);
 	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, 0);
 	t = clock();
+	last = t;
 	SDL_SetRenderTarget(ren, NULL);
 	srand((unsigned) time(&t));
-	int redraw = 0;
 	for (;;) {
+		int redraw = 0;
 #ifdef DEBUG
 		printf("Instruction at %x : %x: ", pc, (mem[pc] << 8) | mem[pc+1]);
 #endif
@@ -334,9 +336,9 @@ int main(int argc, char *argv[]) {
 					//Same as above, but sprite is always 16x16, superchip only, not yet implemented
 				} else if (opcode >> 12 == 0xe && (opcode & 0xff) == 0x9e) {
 					//skip if key is pressed (k is second 4 bits from  left) (key is a key number)
-					//#ifdef DEBUG
+#ifdef DEBUG
 					printf("skip if key %x is pressed\n", ((opcode >> 8) & 0xf));
-					//#endif
+#endif
 					int key_val = ((opcode >>8)&0xf);
 					int sdl_key;
 					if (key[key_val]) {
@@ -347,14 +349,14 @@ int main(int argc, char *argv[]) {
 					}
 				} else if (opcode >> 12 == 0xe && (opcode & 0xff) == 0xa1) {
 					//skip if key is not pressed (k is second 4 from left)
-					//#ifdef DEBUG
+#ifdef DEBUG
 					printf("skip if key %x is not pressed\n", ((opcode >> 8) & 0xf));
-					//#endif
+#endif
 					int key_val = ((opcode >>8)&0xf);
 					if (!key[key_val]) {
-						//#ifdef DEBUG
+#ifdef DEBUG
 						printf("skipped\n");
-						//#endif
+#endif
 						pc+=2;
 					}
 				} else if (opcode >> 12 == 0xf && (opcode & 0xff) == 0x07) {
@@ -365,9 +367,9 @@ int main(int argc, char *argv[]) {
 					reg[(opcode >> 8) & 0xf] = delay;
 				} else if (opcode >> 12 == 0xf && (opcode & 0xff)== 0x0a) {
 					//getwait for keypress, put key in register r (r second 4 from left)
-					//#ifdef DEBUG
+#ifdef DEBUG
 					printf("getwait for keypress, then puts key in register %x\n", (opcode >> 8) & 0xf);
-					//#endif
+#endif
 					int found = -1;
 					
 					if (key[0]) {
@@ -449,7 +451,7 @@ int main(int argc, char *argv[]) {
 					for (int ind = 0; ind <= ((opcode >> 8) & 0xf); ind++) {
 						mem[i+ind] = reg[ind];
 					}
-					//i += ((opcode >> 8) & 0xf) + 1;
+					i += ((opcode >> 8) & 0xf) + 1;
 				} else if (opcode >> 12 == 0xf && (opcode & 0xff) == 0x65) {
 					#ifdef DEBUG
 					printf("loads register 0 through register %x at location I onwards, I = I + r + 1\n", ((opcode >> 8) & 0xf));
@@ -459,7 +461,7 @@ int main(int argc, char *argv[]) {
 					for (int ind = 0; ind <= ((opcode >> 8) & 0xf);ind++) {
 						reg[ind] = mem[i+ind];
 					}
-					//i += ((opcode >> 8) & 0xf) + 1; //could be -=
+					i += ((opcode >> 8) & 0xf) + 1; //could be -=
 				} else {
 					#ifdef DEBUG
 					printf("Unfortunately, the instruction this Chip attempted to process is not a valid Chip8 instruction\n");
@@ -476,6 +478,8 @@ int main(int argc, char *argv[]) {
 				break;
 				case SDL_KEYDOWN:
 				switch(e.key.keysym.sym) {
+					case SDLK_ESCAPE:
+					exit(1);
 					case SDLK_1:
 					key[0]=1;
 					break;
@@ -604,6 +608,14 @@ int main(int argc, char *argv[]) {
 			SDL_RenderPresent(ren);
 			SDL_ShowWindow(win);
 		}
+		clock_t new_clock = clock();
+		if (((new_clock - t)*1000)/CLOCKS_PER_SEC/17 < 1) {
+			SDL_Delay(2);
+		} else {
+			delay -= ((new_clock - t)*1000)/CLOCKS_PER_SEC/17;
+			t = new_clock;
+		}
+		//printf("delay: %d", delay);
 	}
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(win);
